@@ -1,0 +1,20 @@
+table MonthsSinceStart
+	lineageTag: 686f3d00-fb0f-448e-ba95-ff7f38a46f04
+
+	column Value
+		formatString: 0
+		lineageTag: d541aecb-0625-4f25-b4fc-4f3e46da1643
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition MonthsSinceStart = calculated
+		mode: import
+		source = ```
+				GENERATESERIES(0, 12, 1) 
+				```
+
+	annotation PBI_Id = 3515868151ab455ba51e1753e1e2451b
+

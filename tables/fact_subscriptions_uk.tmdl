@@ -1,0 +1,81 @@
+table fact_subscriptions_uk
+	lineageTag: dbc7941b-7df0-4240-bc15-bca12c3731a9
+
+	column subscription_id
+		dataType: string
+		lineageTag: dd9ad40b-d830-488f-a71a-efa570c9fbb4
+		summarizeBy: none
+		sourceColumn: subscription_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column start_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: 98a7783a-6407-46ef-9ee7-d244540291de
+		summarizeBy: none
+		sourceColumn: start_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column end_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: 353245f4-0810-4765-a553-50696ff646da
+		summarizeBy: none
+		sourceColumn: end_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column months_active
+		dataType: int64
+		formatString: 0
+		lineageTag: e713f508-7275-4897-a505-0415c3c82843
+		summarizeBy: none
+		sourceColumn: months_active
+
+		annotation SummarizationSetBy = User
+
+	column monthly_fee_gbp
+		dataType: double
+		formatString: 0.00
+		lineageTag: 82bb88d8-9150-4b13-966b-24a39e3ab849
+		summarizeBy: none
+		sourceColumn: monthly_fee_gbp
+
+		annotation SummarizationSetBy = User
+
+	column rep_id
+		dataType: string
+		lineageTag: 5d48a7d1-0e4f-40fc-a373-b4a68bfad3ad
+		summarizeBy: none
+		sourceColumn: rep_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Cohort Year' = YEAR( fact_subscriptions_uk[start_date] )
+		formatString: 0
+		lineageTag: 05c427e5-f364-42ae-ab84-eda1e7bc5e63
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_subscriptions_uk = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\fact_subscriptions_uk.csv"),[Delimiter=",", Columns=9, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"subscription_id", type text}, {"sale_id", type text}, {"start_date", type date}, {"end_date", type date}, {"months_active", Int64.Type}, {"monthly_fee_gbp", type number}, {"epc_gbp", type number}, {"uk_region_id", type text}, {"rep_id", type text}}),
+				    #"Columns removed by Measure Killer"= Table.SelectColumns(#"Changed Type",{"start_date","monthly_fee_gbp","rep_id","end_date","subscription_id","months_active"})
+				in
+				    #"Columns removed by Measure Killer"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

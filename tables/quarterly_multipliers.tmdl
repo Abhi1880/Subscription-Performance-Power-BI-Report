@@ -1,0 +1,33 @@
+table quarterly_multipliers
+	lineageTag: bc658155-b095-41b6-9302-e76f08b91a13
+
+	column threshold_attainment_pct
+		dataType: double
+		formatString: 0.00
+		lineageTag: 2bc87e05-6300-4a9e-925d-48629bc170fe
+		summarizeBy: none
+		sourceColumn: threshold_attainment_pct
+
+		annotation SummarizationSetBy = User
+
+	column quarter_multiplier
+		dataType: double
+		formatString: 0.00
+		lineageTag: d020454e-2365-4ef1-b546-3fde573653f8
+		summarizeBy: none
+		sourceColumn: quarter_multiplier
+
+		annotation SummarizationSetBy = User
+
+	partition quarterly_multipliers = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\quarterly_multipliers.csv"),[Delimiter=",", Columns=2, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"threshold_attainment_pct", type number}, {"quarter_multiplier", type number}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

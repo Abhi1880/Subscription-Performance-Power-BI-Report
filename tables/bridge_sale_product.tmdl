@@ -1,0 +1,38 @@
+table bridge_sale_product
+	lineageTag: 966e6ac0-5075-40b5-ad6a-40145dd1637d
+
+	column sale_id
+		dataType: string
+		lineageTag: bdb773e4-a72c-4509-8d5f-cd3e73f289a9
+		summarizeBy: none
+		sourceColumn: sale_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_id
+		dataType: string
+		lineageTag: a92eb5c6-7eb2-4ed1-8a31-814e5a20b036
+		summarizeBy: none
+		sourceColumn: product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	partition bridge_sale_product = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\fact_sales_uk.csv"),[Delimiter=",", Columns=18, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"sale_id", type text}, {"sale_date", type date}, {"year", Int64.Type}, {"month", Int64.Type}, {"country", type text}, {"uk_region_id", type text}, {"rep_id", type text}, {"team", type text}, {"lead_source", type text}, {"product_ids", type text}, {"bundle_addon_count", Int64.Type}, {"term_months", Int64.Type}, {"install_fee_gbp", type number}, {"monthly_fee_gbp", type number}, {"opex_per_customer_gbp", type number}, {"epc_gbp", type number}, {"customer_type", type text}, {"guardvision_units", Int64.Type}}),
+				    #"Removed Other Columns" = Table.SelectColumns(#"Changed Type",{"sale_id", "product_ids"}),
+				    #"Split Column by Delimiter" = Table.ExpandListColumn(Table.TransformColumns(#"Removed Other Columns", {{"product_ids", Splitter.SplitTextByDelimiter("|", QuoteStyle.Csv), let itemType = (type nullable text) meta [Serialized.Text = true] in type {itemType}}}), "product_ids"),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"product_ids", type text}}),
+				    #"Trimmed Text" = Table.TransformColumns(#"Changed Type1",{{"product_ids", Text.Trim, type text}}),
+				    #"Renamed Columns" = Table.RenameColumns(#"Trimmed Text",{{"product_ids", "product_id"}})
+				in
+				    #"Renamed Columns"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

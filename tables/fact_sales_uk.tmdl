@@ -1,0 +1,81 @@
+table fact_sales_uk
+	lineageTag: 00aed862-50c1-46c5-a1e4-a5752d329525
+
+	column sale_id
+		dataType: string
+		lineageTag: f012e55d-7bc1-40c5-86a6-0c0bd59514c3
+		summarizeBy: none
+		sourceColumn: sale_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column sale_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: adf7908f-2da1-4f83-b44a-f0b16319162c
+		summarizeBy: none
+		sourceColumn: sale_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column rep_id
+		dataType: string
+		lineageTag: 7c96d570-2779-4d29-8aec-fc6a92a043ac
+		summarizeBy: none
+		sourceColumn: rep_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column bundle_addon_count
+		dataType: int64
+		formatString: 0
+		lineageTag: de48495f-ea11-4548-9545-17c39aac6654
+		summarizeBy: none
+		sourceColumn: bundle_addon_count
+
+		annotation SummarizationSetBy = User
+
+	column monthly_fee_gbp
+		dataType: double
+		formatString: 0.00
+		lineageTag: 4b005942-1d49-499a-bbca-c110fc246b66
+		summarizeBy: none
+		sourceColumn: monthly_fee_gbp
+
+		annotation SummarizationSetBy = User
+
+	column epc_gbp
+		dataType: double
+		formatString: 0.00
+		lineageTag: 89ba4d95-9d40-4fcb-ae66-4fffe2178306
+		summarizeBy: none
+		sourceColumn: epc_gbp
+
+		annotation SummarizationSetBy = User
+
+	column guardvision_units
+		dataType: int64
+		formatString: 0
+		lineageTag: 6ab56049-ece5-4c7e-a1d1-549fd973f863
+		summarizeBy: none
+		sourceColumn: guardvision_units
+
+		annotation SummarizationSetBy = User
+
+	partition fact_sales_uk = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\fact_sales_uk.csv"),[Delimiter=",", Columns=18, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"sale_id", type text}, {"sale_date", type date}, {"year", Int64.Type}, {"month", Int64.Type}, {"country", type text}, {"uk_region_id", type text}, {"rep_id", type text}, {"team", type text}, {"lead_source", type text}, {"product_ids", type text}, {"bundle_addon_count", Int64.Type}, {"term_months", Int64.Type}, {"install_fee_gbp", type number}, {"monthly_fee_gbp", type number}, {"opex_per_customer_gbp", type number}, {"epc_gbp", type number}, {"customer_type", type text}, {"guardvision_units", Int64.Type}}),
+				    #"Columns removed by Measure Killer"= Table.SelectColumns(#"Changed Type",{"epc_gbp","sale_date","rep_id","guardvision_units","sale_id","bundle_addon_count","monthly_fee_gbp"})
+				in
+				    #"Columns removed by Measure Killer"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

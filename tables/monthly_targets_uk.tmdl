@@ -1,0 +1,58 @@
+table monthly_targets_uk
+	lineageTag: 7a24070d-b5ed-4127-8d22-446d0867ce03
+
+	column rep_id
+		dataType: string
+		lineageTag: c0e23a18-d0a8-449a-a821-1395ff1e3df7
+		summarizeBy: none
+		sourceColumn: rep_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column year
+		dataType: int64
+		formatString: 0
+		lineageTag: 5819eb78-6f08-46ef-acd8-cf020929246d
+		summarizeBy: sum
+		sourceColumn: year
+
+		annotation SummarizationSetBy = Automatic
+
+	column month
+		dataType: int64
+		formatString: 0
+		lineageTag: 32e53b94-b406-4e2c-bec4-dc497fddd893
+		summarizeBy: sum
+		sourceColumn: month
+
+		annotation SummarizationSetBy = Automatic
+
+	column target_deals
+		dataType: int64
+		formatString: 0
+		lineageTag: 16f450d7-ddd8-4a45-906c-d2fc44b8b319
+		summarizeBy: none
+		sourceColumn: target_deals
+
+		annotation SummarizationSetBy = User
+
+	column MonthStart = DATE([year],[month],1)
+		formatString: Short Date
+		lineageTag: cba0772a-6ca2-4725-a695-4549eb632bf9
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition monthly_targets_uk = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\monthly_targets_uk.csv"),[Delimiter=",", Columns=6, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"rep_id", type text}, {"year", Int64.Type}, {"month", Int64.Type}, {"target_deals", Int64.Type}, {"target_arpu_gbp", type number}, {"target_epc_gbp", type number}}),
+				    #"Columns removed by Measure Killer"= Table.SelectColumns(#"Changed Type",{"rep_id","month","year","target_deals"})
+				in
+				    #"Columns removed by Measure Killer"
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,53 @@
+table DimMonth
+	lineageTag: 4fa172c0-0e10-42e6-ba5f-689b9f24830b
+
+	column MonthStart
+		formatString: General Date
+		lineageTag: 7c6bc9e9-2db3-468e-9ab1-c09f19fbb122
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: DimDate[MonthStart]
+		columnOrigin: DimDate.MonthStart
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		formatString: 0
+		lineageTag: 98cba8ff-9bf8-4972-abc9-4aa746daf174
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		formatString: 0
+		lineageTag: 974bf02f-ba54-4a64-9b03-59be5d7ff48f
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonth
+		lineageTag: 2032766e-0cfd-4a6d-ac30-8ac7c5ce8012
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [YearMonth]
+		sortByColumn: MonthStart
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DimMonth = calculated
+		mode: import
+		source =
+				
+				ADDCOLUMNS (
+				    SUMMARIZE ( DimDate, DimDate[MonthStart] ),
+				    "Year",  YEAR ( [MonthStart] ),
+				    "Month", MONTH ( [MonthStart] ),
+				    "YearMonth", FORMAT ( [MonthStart], "YYYY-MM" )
+				)
+
+	annotation PBI_Id = 3ce4385bdcfc411b86028f62ca8043b4
+

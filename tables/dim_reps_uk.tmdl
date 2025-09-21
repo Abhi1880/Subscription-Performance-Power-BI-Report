@@ -1,0 +1,57 @@
+table dim_reps_uk
+	lineageTag: 8d2b1ab8-1f63-4281-b1a6-9d7c7d23ed13
+
+	column rep_id
+		dataType: string
+		lineageTag: 06af83eb-4122-4479-acfd-68355f8fe564
+		summarizeBy: none
+		sourceColumn: rep_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column rep_name
+		dataType: string
+		lineageTag: 6f856384-b237-479e-80ac-f1f8b9a303e9
+		summarizeBy: none
+		sourceColumn: rep_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column grade
+		dataType: string
+		lineageTag: 0ab10322-b52f-490a-8612-22bd1233fb69
+		summarizeBy: none
+		sourceColumn: grade
+
+		annotation SummarizationSetBy = Automatic
+
+	column team
+		dataType: string
+		lineageTag: 42f14984-5aea-4c6a-bbdb-43b155669356
+		summarizeBy: none
+		sourceColumn: team
+
+		annotation SummarizationSetBy = Automatic
+
+	column uk_region_id
+		dataType: string
+		lineageTag: d3907638-0706-45f8-8029-5eb93a85845b
+		summarizeBy: none
+		sourceColumn: uk_region_id
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_reps_uk = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\dim_reps_uk.csv"),[Delimiter=",", Columns=7, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}, {"Column4", type text}, {"Column5", type text}, {"Column6", type text}, {"Column7", type text}}),
+				    #"Promoted Headers" = Table.PromoteHeaders(#"Changed Type", [PromoteAllScalars=true]),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Promoted Headers",{{"rep_id", type text}, {"rep_name", type text}, {"grade", type text}, {"team", type text}, {"country", type text}, {"uk_region_id", type text}, {"uk_region_name", type text}}),
+				    #"Columns removed by Measure Killer"= Table.SelectColumns(#"Changed Type1",{"team","rep_id","grade","rep_name","uk_region_id"})
+				in
+				    #"Columns removed by Measure Killer"
+
+	annotation PBI_ResultType = Table
+

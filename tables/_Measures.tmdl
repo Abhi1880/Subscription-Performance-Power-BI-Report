@@ -1,0 +1,669 @@
+table _Measures
+	lineageTag: fce184fb-7422-429c-afdb-45271725f8ac
+
+	measure 'Total Deals' = ```
+			
+			COUNTROWS ( 'fact_sales_uk' )
+			
+			```
+		formatString: #,0
+		lineageTag: 79a0647d-bd16-4cd1-92a6-121d1e767271
+
+		annotation PBI_FormatHint = {"isDecimal":true}
+
+	measure 'MRR (£)' =
+			
+			SUM ( 'fact_sales_uk'[monthly_fee_gbp] )
+		lineageTag: 2938365e-ee05-4164-b740-ecf3e5d3f74a
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'ARPU (£)' = ```
+			
+			DIVIDE ( [MRR (£)], [Total Deals] )
+			
+			```
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 53d81c34-1f3d-4014-acaa-4a8d3fb1da4f
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure 'EPC (£)' =
+			
+			AVERAGE ( 'fact_sales_uk'[epc_gbp] )
+		lineageTag: b78d6f12-0b95-4585-aa96-62184cdf20cf
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Monthly Target Deals' =
+			
+			SUM ( 'monthly_targets_uk'[target_deals] )
+		formatString: #,0
+		lineageTag: 74ce41ef-17ca-4024-bcad-1743e7239036
+
+	measure 'Attainment %' = ```
+			
+			DIVIDE ( [Total Deals], [Monthly Target Deals] )
+			
+			```
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 7adb978a-f918-438c-a2ca-b8b16016cc83
+
+	measure 'Base Rate per Deal (£)' =
+			
+			VAR A = [Attainment %]
+			RETURN
+			SWITCH (
+			    TRUE(),
+			    A < 0.8,  CALCULATE ( MAX ( 'commission_model_uk'[base_rate_per_deal_gbp] ), 'commission_model_uk'[attainment_band] = "Under 80%" ),
+			    A < 1.0,  CALCULATE ( MAX ( 'commission_model_uk'[base_rate_per_deal_gbp] ), 'commission_model_uk'[attainment_band] = "80% - 99%" ),
+			    A < 1.2,  CALCULATE ( MAX ( 'commission_model_uk'[base_rate_per_deal_gbp] ), 'commission_model_uk'[attainment_band] = "100% - 119%" ),
+			              CALCULATE ( MAX ( 'commission_model_uk'[base_rate_per_deal_gbp] ), 'commission_model_uk'[attainment_band] = "120%+" )
+			)
+		formatString: 0
+		lineageTag: b8f12b10-0362-4943-80c2-ca2a38768c6e
+
+	measure 'Deals over Accelerator' = ```
+			
+			VAR Th = MAX ( 'commission_model_uk'[accelerator_over_x_deals] )
+			RETURN MAX ( [Total Deals] - Th, 0 )
+			
+			
+			```
+		formatString: 0
+		lineageTag: 1006cd95-81eb-4c91-8be9-3d4af9d5d059
+
+	measure 'Accelerator Extra (£)' =
+			
+			[Deals over Accelerator] *
+			MAX ( 'commission_model_uk'[accelerator_extra_per_deal_gbp] )
+		formatString: 0
+		lineageTag: 0714d86a-8b2a-4529-befd-b7943051b17f
+
+	measure 'ARPU Bonus per Deal (£)' =
+			
+			VAR Th = MAX ( 'commission_model_uk'[arpu_bonus_threshold_gbp] )
+			VAR B  = MAX ( 'commission_model_uk'[arpu_bonus_per_deal_gbp] )
+			RETURN IF ( [ARPU (£)] >= Th, B, 0 )
+		formatString: 0
+		lineageTag: 76dc9572-382e-4c78-bec1-a2fc24b98cbb
+
+	measure 'ARPU Bonus (£)' =
+			
+			[ARPU Bonus per Deal (£)] * [Total Deals]
+		formatString: 0
+		lineageTag: e59c4c45-969d-4a7f-93eb-072bc311a0ac
+
+	measure 'GuardVision Units' =
+			
+			SUM ( 'fact_sales_uk'[guardvision_units] )
+		formatString: 0
+		lineageTag: 8c1b19ed-4182-4ea5-9975-713927c6d77d
+
+	measure 'SPIFF (£)' =
+			
+			[GuardVision Units] * MAX ( 'spiffs'[spiff_per_unit_gbp] )
+		formatString: 0
+		lineageTag: ff3cc1e2-9c96-4b83-8334-1fa33338a0a2
+
+	measure 'Qualifying Deals (2+ add-ons)' =
+			
+			CALCULATE (
+			    COUNTROWS ( 'fact_sales_uk' ),
+			    'fact_sales_uk'[bundle_addon_count] >= 2
+			)
+		formatString: 0
+		lineageTag: db903cc7-c120-4130-865e-df90ca4ccd62
+
+	measure 'Mix Bonus (£)' =
+			
+			[Qualifying Deals (2+ add-ons)] *
+			MAX ( 'mix_bonus_rules'[bonus_per_deal_gbp] )
+		formatString: 0
+		lineageTag: c16ff68f-5a37-4080-982d-91c4f271f83c
+
+	measure 'Rep Grade Multiplier' =
+			
+			VAR g = SELECTEDVALUE ( 'dim_reps_uk'[grade] )
+			RETURN LOOKUPVALUE ( 'grade_rate_grid'[rate_multiplier], 'grade_rate_grid'[grade], g, 1.0 )
+		lineageTag: 6edc9ea1-9462-4ffa-888e-0435ea3fe869
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Base Commission (£)' =
+			
+			VAR Rate = [Base Rate per Deal (£)]
+			RETURN
+			COALESCE(
+			    SUMX(
+			        VALUES('dim_reps_uk'[rep_id]),
+			        VAR DealsR = CALCULATE(COUNTROWS('fact_sales_uk'))
+			        VAR Mult   = [Rep Grade Multiplier]
+			        RETURN DealsR * Rate * Mult
+			    ),
+			    0
+			)
+		lineageTag: 4f14bc6f-6a05-4b85-b8e9-10c9714ab730
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Quarter Multiplier' =
+			
+			VAR Th = MAX ( 'quarterly_multipliers'[threshold_attainment_pct] )
+			VAR K  = MAX ( 'quarterly_multipliers'[quarter_multiplier] )
+			RETURN IF ( [Attainment %] >= Th, K, 1.0 )
+		lineageTag: 1f3aecba-f020-4f8a-bcd9-621fd72fd730
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Commission Pre-Quarter (£)' =
+			
+			[Base Commission (£)] +
+			[Accelerator Extra (£)] +
+			[ARPU Bonus (£)] +
+			[SPIFF (£)] +
+			[Mix Bonus (£)]
+		lineageTag: 0e1d15ef-347e-4bb8-9f9b-cc49b69dda44
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Quarter Kicker (£)' =
+			
+			[Commission Pre-Quarter (£)] * ( [Quarter Multiplier] - 1 )
+		lineageTag: b4e3e1db-0009-4f84-8dfa-61a8c52177d3
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Commission (£)' =
+			
+			[Commission Pre-Quarter (£)] + [Quarter Kicker (£)]
+		formatString: "£"#,0;-"£"#,0;"£"#,0
+		lineageTag: 8caca2b3-ee59-49e3-b756-516a5be837cc
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure 'Commission Component (£)' =
+			
+			SWITCH (
+			    SELECTEDVALUE ( CommissionComponents[Component] ),
+			    "Base",           [Base Commission (£)],
+			    "ARPU Bonus",     [ARPU Bonus (£)],
+			    "Accelerator",    [Accelerator Extra (£)],
+			    "SPIFF",          [SPIFF (£)],
+			    "Mix Bonus",      [Mix Bonus (£)],
+			    "Quarter Kicker", [Quarter Kicker (£)]
+			)
+		formatString: "£"#,0;-"£"#,0;"£"#,0
+		lineageTag: 64a67056-9eb5-4480-a8cf-abce5925a993
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure '% Deals with ≥2 add-ons' =
+			
+			DIVIDE ( [Qualifying Deals (2+ add-ons)], [Total Deals] )
+		formatString: 0%;-0%;0%
+		lineageTag: d52c7088-6ffc-4958-b661-07f3d14056de
+
+	measure 'GuardVision Penetration %' = DIVIDE([GuardVision Units], [Total Deals])
+		formatString: 0%;-0%;0%
+		lineageTag: b630b4a7-1ef7-427d-9ad5-82f86280aa2a
+
+	measure 'Target 80% Deals' = 0.8 * [Monthly Target Deals (Adj)]
+		lineageTag: 7b5c44d8-4403-4e0b-9416-77407f997809
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Target 100% Deals' = [Monthly Target Deals (Adj)]
+		formatString: 0
+		lineageTag: 4cb1fe2c-fc41-4a4e-bef4-9da1436e8f35
+
+	measure 'Target 120% Deals' = ```
+			1.2 * [Monthly Target Deals (Adj)]
+			
+			```
+		lineageTag: af401d21-7f40-408e-93b9-70d00effd58b
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Monthly Target Deals (Adj)' =
+			
+			SUMX (
+			    VALUES ( dim_reps_uk[rep_id] ),
+			    CALCULATE (
+			        SUM ( monthly_targets_uk[target_deals] ) * [Target Scale Value]
+			    )
+			)
+		lineageTag: 8cf7ff61-8ca7-4bd4-9942-8c309e1d95ca
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Attainment % (Selected, Adj)' =
+			
+			DIVIDE( [Total Deals], [Monthly Target Deals (Adj)] )
+		formatString: 0%;-0%;0%
+		lineageTag: 36b7dec8-2d5b-4233-a7e4-cc2d01c2ea4e
+
+	measure 'Base Rate (Under 80%) £' =
+			
+			CALCULATE (
+			    MAX ( commission_model_uk[base_rate_per_deal_gbp] ),
+			    commission_model_uk[attainment_band] = "Under 80%"
+			)
+		formatString: 0
+		lineageTag: 791c53ed-9e21-483e-a1ab-2aa443cf2da1
+
+	measure '(Trial)Band Rate (£ per deal, Adj)' =
+			
+			VAR A = [Attainment % (Selected, Adj)]
+			RETURN
+			SWITCH(
+			    TRUE(),
+			    A < 0.8,  CALCULATE( MAX( commission_model_uk[base_rate_per_deal_gbp] ), commission_model_uk[attainment_band]="Under 80%"),
+			    A < 1.0,  CALCULATE( MAX( commission_model_uk[base_rate_per_deal_gbp] ), commission_model_uk[attainment_band]="80% - 99%"),
+			    A < 1.2,  CALCULATE( MAX( commission_model_uk[base_rate_per_deal_gbp] ), commission_model_uk[attainment_band]="100% - 119%"),
+			              CALCULATE( MAX( commission_model_uk[base_rate_per_deal_gbp] ), commission_model_uk[attainment_band]="120%+")
+			)
+		formatString: 0
+		lineageTag: 5c2d96d3-0234-4c8e-9f1a-cfa53ede66c8
+
+	measure 'Attainment Uplift Income (£)' = ```
+			
+			VAR RateActual   = [(Trial)Band Rate (£ per deal, Adj)]
+			VAR RateBaseline = [Base Rate (Under 80%) £]
+			VAR Mult         = [Rep Grade Multiplier]    
+			RETURN
+			( RateActual - RateBaseline ) * [Total Deals] * Mult
+			```
+		lineageTag: a71e7bb4-af63-40bf-b6be-1c9bf49d4a2a
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure '25_AsOf MonthStart' =
+			
+			COALESCE(
+			    SELECTEDVALUE( DimMonth[MonthStart] ),
+			    SELECTEDVALUE( DimDate[MonthStart] )
+			)
+		formatString: General Date
+		lineageTag: e7b41ab4-7702-4cb2-b198-b71da02e6100
+
+	measure '24_AsOf Date' = EOMONTH( [25_AsOf MonthStart], 0 )
+		formatString: General Date
+		lineageTag: 83bea3df-efd6-4d8d-a641-be2b6823f523
+
+	measure 'Month Start' = [25_AsOf MonthStart]
+		formatString: General Date
+		lineageTag: 3b2a47a7-30c0-4a17-9cb9-35db90b8a2a0
+
+	measure 'Month End' = EOMONTH( [25_AsOf MonthStart], 0 )
+		formatString: General Date
+		lineageTag: 64e52383-ca7b-465e-adf2-bcaf9ccf12dd
+
+	measure '23_Active Subs (As-Of)' = ```
+			
+			VAR asof = [24_AsOf Date]
+			RETURN
+			CALCULATE (
+			    DISTINCTCOUNT ( fact_subscriptions_uk[subscription_id] ),
+			    FILTER (
+			        fact_subscriptions_uk,
+			        fact_subscriptions_uk[start_date] <= asof
+			            && ( ISBLANK ( fact_subscriptions_uk[end_date] )
+			                 || fact_subscriptions_uk[end_date] > asof )
+			    )
+			)
+			
+			```
+		formatString: 0
+		lineageTag: 8125257b-84f1-4533-97cb-a4a9e38bd7af
+
+	measure '9_Active MRR (As-Of)' =
+			
+			CALCULATE (
+			    SUM ( fact_subscriptions_uk[monthly_fee_gbp] ),
+			    FILTER (
+			        fact_subscriptions_uk,
+			        fact_subscriptions_uk[start_date] <= [4_AsOf Date]
+			        && ( ISBLANK ( fact_subscriptions_uk[end_date] )
+			             || fact_subscriptions_uk[end_date] > [4_AsOf Date]
+			            )
+			    )
+			)
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 1e70d07a-0e7a-41d4-af8d-2c1dd16523ab
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure '21_New Subs (Month)' =
+			
+			VAR m0 = [Month Start]
+			VAR m1 = [Month End]
+			RETURN
+			CALCULATE (
+			    DISTINCTCOUNT ( fact_subscriptions_uk[subscription_id] ),
+			    FILTER ( fact_subscriptions_uk,
+			        fact_subscriptions_uk[start_date] >= m0
+			        && fact_subscriptions_uk[start_date] <= m1
+			    )
+			)
+		formatString: 0
+		lineageTag: 568eaa68-afed-4bfe-ae36-b981074afd69
+
+	measure '22_Cancels (Month)' =
+			
+			VAR m0 = [Month Start]
+			VAR m1 = [Month End]
+			RETURN
+			CALCULATE (
+			    DISTINCTCOUNT ( fact_subscriptions_uk[subscription_id] ),
+			    FILTER ( fact_subscriptions_uk,
+			        NOT ISBLANK ( fact_subscriptions_uk[end_date] )
+			        && fact_subscriptions_uk[end_date] >= m0
+			        && fact_subscriptions_uk[end_date] <= m1
+			    )
+			)
+		formatString: 0
+		lineageTag: a55dc7f3-fec9-4978-90e7-e9ac82e52cc0
+
+	measure '17_New MRR (Month)' =
+			
+			VAR m0 = [1_Range Month Start]
+			VAR m1 = [4_Range Date End]
+			RETURN
+			CALCULATE (
+			    SUM ( fact_subscriptions_uk[monthly_fee_gbp] ),
+			    FILTER ( fact_subscriptions_uk,
+			        fact_subscriptions_uk[start_date] >= m0
+			        && fact_subscriptions_uk[start_date] <= m1
+			    )
+			)
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: d63b177a-2033-4958-9856-80d087894559
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure '12_Churned MRR (Month)' =
+			
+			VAR m0 = [1_Range Month Start]
+			VAR m1 = [4_Range Date End]
+			RETURN
+			CALCULATE (
+			    SUM ( fact_subscriptions_uk[monthly_fee_gbp] ),
+			    FILTER ( fact_subscriptions_uk,
+			        NOT ISBLANK ( fact_subscriptions_uk[end_date] )
+			        && fact_subscriptions_uk[end_date] >= m0
+			        && fact_subscriptions_uk[end_date] <= m1
+			    )
+			)
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 6b028dd4-1a40-4364-b4e2-7a7f81188d84
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure '20_Net Adds (Month)' = [21_New Subs (Month)] - [22_Cancels (Month)]
+		formatString: 0
+		lineageTag: b6fecfdc-92c6-44c9-a15e-16854363e19e
+
+	measure '14_Early Cancel % (≤3m)' =
+			
+			DIVIDE ( [8_Early Cancels (Range, ≤3m)], [5_New Subs (Range)] )
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 5729f179-bb4c-4c8e-a014-206d1da6e79c
+
+	measure '10_Avg Tenure (Active, months)' =
+			
+			AVERAGEX (
+			    FILTER (
+			        fact_subscriptions_uk,
+			        fact_subscriptions_uk[start_date] <= [24_AsOf Date]
+			        && ( ISBLANK ( fact_subscriptions_uk[end_date] )
+			             || fact_subscriptions_uk[end_date] > [24_AsOf Date] )
+			    ),
+			    fact_subscriptions_uk[months_active]
+			)
+		lineageTag: 4e0c1087-2cf3-4bab-aa7b-dd96a772a899
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Rep Grade Multiplier1' =
+			
+			LOOKUPVALUE (
+			    grade_rate_grid[rate_multiplier],
+			    grade_rate_grid[grade], SELECTEDVALUE ( dim_reps_uk[grade] ),
+			    1.0
+			)
+		lineageTag: 7b9e0723-b4f1-4e75-9c94-a13968746f93
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure '13_Retention % (Cohort Year)' = ```
+			
+			
+			VAR m  = SELECTEDVALUE( MonthsSinceStart[Value], 0 )           
+			VAR y  = SELECTEDVALUE( fact_subscriptions_uk[Cohort Year] )   
+			
+			VAR AsOfMonthStart =
+			    MAXX ( ALLSELECTED ( DimMonth ), DimMonth[MonthStart] )
+			VAR AsOfDate = EOMONTH ( AsOfMonthStart, 0 )
+			
+			VAR CohortRows =
+			    FILTER (
+			        ALL ( fact_subscriptions_uk ),
+			        fact_subscriptions_uk[Cohort Year] = y
+			    )
+			
+			VAR ObservableCountAtM =
+			    CALCULATE (
+			        DISTINCTCOUNT ( fact_subscriptions_uk[subscription_id] ),
+			        CohortRows,
+			        EOMONTH ( fact_subscriptions_uk[start_date], m ) <= AsOfDate,
+			        REMOVEFILTERS ( DimMonth )
+			    )
+			
+			VAR StillActiveAtM =
+			    CALCULATE (
+			        DISTINCTCOUNT ( fact_subscriptions_uk[subscription_id] ),
+			        CohortRows,
+			        EOMONTH ( fact_subscriptions_uk[start_date], m ) <= AsOfDate,
+			        OR ( ISBLANK ( fact_subscriptions_uk[end_date] ),
+			             fact_subscriptions_uk[end_date] > AsOfDate ),
+			        REMOVEFILTERS ( DimMonth )
+			    )
+			
+			RETURN
+			IF ( ObservableCountAtM = 0, BLANK(), DIVIDE ( StillActiveAtM, ObservableCountAtM ) )
+			```
+		lineageTag: efa3a62d-42b9-477a-956e-639f4d6e40fc
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure '13_Start MRR (Prev Month)' = ```
+			
+			VAR prev = EOMONTH ( [4_AsOf Date], -1 )
+			RETURN
+			CALCULATE (
+			    SUM ( fact_subscriptions_uk[monthly_fee_gbp] ),
+			    FILTER (
+			        fact_subscriptions_uk,
+			        fact_subscriptions_uk[start_date] <= prev &&
+			        ( ISBLANK ( fact_subscriptions_uk[end_date] )
+			          || fact_subscriptions_uk[end_date] > prev )
+			    )
+			)
+			
+			```
+		formatString: "£"#,0;-"£"#,0;"£"#,0
+		lineageTag: 84e041eb-ba5e-40b8-8ce7-b8a08b7ee67a
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure '17_MRR Walk' = ```
+			
+			VAR step  = SELECTEDVALUE(MRR_Steps[Step])
+			VAR start_ = [13_Start MRR (Prev Month)]
+			VAR new_   = [17_New MRR (Month)]
+			VAR churn_ = [12_Churned MRR (Month)]
+			RETURN
+			SWITCH(TRUE(),
+			  step = "MRR Till Now",                        start_,
+			  step = "New MRR (New Subs this Month)",      new_,
+			  step = "Churned MRR (Cancelled Subs this Month)", -churn_,
+			  BLANK()
+			)
+			
+			```
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 1c7a6f22-d0b2-47bc-896c-a1725a2eb08d
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	measure '11_Avg Tenure (Formatted)' =
+			
+			VAR m = [10_Avg Tenure (Active, months)]
+			VAR whole = INT ( m )
+			VAR frac  = m - whole
+			VAR days  = ROUND ( frac * 30, 0 )
+			RETURN
+			whole & " months " & days & " days"
+		lineageTag: 41071f7c-0490-440c-8eb9-2779283dd46b
+
+	measure '1_Range Month Start' =
+			
+			VAR SelMin =
+			    CALCULATE(
+			        MIN ( DimMonth[MonthStart] ),
+			        ALLSELECTED ( DimMonth )    -- works when the slicer is on DimMonth, or DimMonth is being filtered
+			    )
+			VAR FallbackMin =
+			    CALCULATE(
+			        MIN ( DimMonth[MonthStart] ),
+			        ALL ( DimMonth )            -- full calendar fallback when nothing is selected
+			    )
+			RETURN
+			COALESCE ( SelMin, FallbackMin )
+		formatString: General Date
+		lineageTag: 4db6b5d4-adbc-4326-98c9-abbf79afde7a
+
+	measure '2_Range Month End' =
+			
+			VAR SelMax =
+			    CALCULATE(
+			        MAX ( DimMonth[MonthStart] ),
+			        ALLSELECTED ( DimMonth )
+			    )
+			VAR FallbackMax =
+			    CALCULATE(
+			        MAX ( DimMonth[MonthStart] ),
+			        ALL ( DimMonth )
+			    )
+			RETURN
+			COALESCE ( SelMax, FallbackMax )
+		formatString: General Date
+		lineageTag: c811462f-80c2-4f0b-af60-f619b52f93c0
+
+	measure '4_AsOf Date' = ```
+			EOMONTH ( [2_Range Month End], 0 )  
+			```
+		formatString: General Date
+		lineageTag: 7221f625-8d42-485d-bbf7-a8beee2cb278
+
+	measure '5_New Subs (Range)' =
+			
+			VAR m0 = [1_Range Month Start]
+			VAR m1 = [4_Range Date End]
+			RETURN
+			CALCULATE(
+			    DISTINCTCOUNT( fact_subscriptions_uk[subscription_id] ),
+			    KEEPFILTERS( fact_subscriptions_uk[start_date] >= m0 ),
+			    KEEPFILTERS( fact_subscriptions_uk[start_date] <= m1 )
+			)
+		formatString: 0
+		lineageTag: 06182ac7-0079-4683-b63f-d1d9950f4643
+
+	measure '8_Early Cancels (Range, ≤3m)' =
+			
+			VAR m0 = [1_Range Month Start]
+			VAR m1 = [4_Range Date End]
+			RETURN
+			CALCULATE(
+			    DISTINCTCOUNT( fact_subscriptions_uk[subscription_id] ),
+			    KEEPFILTERS( fact_subscriptions_uk[start_date] >= m0 ),
+			    KEEPFILTERS( fact_subscriptions_uk[start_date] <= m1 ),
+			    NOT ISBLANK( fact_subscriptions_uk[end_date] ),
+			    DATEDIFF( fact_subscriptions_uk[start_date], fact_subscriptions_uk[end_date], MONTH ) < 3
+			)
+		formatString: 0
+		lineageTag: 1cf059b3-49af-4396-8cbd-64cbac6a851d
+
+	measure '16_Clawback £ (≤3m cancels, Range)' =
+			
+			VAR m0 = [1_Range Month Start]
+			VAR m1 = [4_Range Date End]
+			RETURN
+			SUMX(
+			    CALCULATETABLE(
+			        VALUES( fact_subscriptions_uk[subscription_id] ),
+			        KEEPFILTERS( fact_subscriptions_uk[start_date] >= m0 ),
+			        KEEPFILTERS( fact_subscriptions_uk[start_date] <= m1 ),
+			        NOT ISBLANK( fact_subscriptions_uk[end_date] ),
+			        DATEDIFF( fact_subscriptions_uk[start_date], fact_subscriptions_uk[end_date], MONTH ) < 3
+			    ),
+			    CALCULATE( [Base Rate (Under 80%) £] * [Rep Grade Multiplier1] )
+			)
+		lineageTag: eda93697-31a0-4882-86de-4dc65ddb7b84
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure '16_Clawback £ (Display)' =
+			
+			IF (
+			    ISINSCOPE ( dim_reps_uk[rep_id] ),                 -- row level
+			    [16_Clawback £ (≤3m cancels, Range)],              -- your existing measure
+			    SUMX (                                             -- total/subtotal: sum the visible rows
+			        VALUES ( dim_reps_uk[rep_id] ),
+			        [16_Clawback £ (≤3m cancels, Range)]
+			    )
+			)
+		lineageTag: cc5644c9-4073-4eca-924c-239fc80d5b2b
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure '14_Early Cancel % (Display)' =
+			
+			IF (
+			    ISINSCOPE ( dim_reps_uk[rep_id] ),                  -- row level
+			    [14_Early Cancel % (≤3m)],                          -- your existing % (per rep)
+			    DIVIDE (                                            -- total/subtotal: weighted percentage
+			        SUMX ( VALUES ( dim_reps_uk[rep_id] ), [8_Early Cancels (Range, ≤3m)] ),
+			        SUMX ( VALUES ( dim_reps_uk[rep_id] ), [5_New Subs (Range)] )
+			    )
+			)
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 1a5a0106-fcd6-4a4e-b817-b7421033ae5e
+
+	measure '4_Range Date End' = EOMONTH ( [2_Range Month End], 0 )
+		formatString: General Date
+		lineageTag: 7a72dd16-aec9-4df9-be41-028877317937
+
+	measure '18_Net MRR Growth (£, Month)' =
+			
+			[17_New MRR (Month)] - [12_Churned MRR (Month)]
+		lineageTag: 85c615ea-220b-4a25-bcbb-9ff53270bd59
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Value
+		formatString: 0
+		lineageTag: 4b2ed746-dba8-4b1a-8c81-e876868efd41
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
+		mode: import
+		source = {1}
+
+	annotation PBI_Id = d73c126671ce4856b01ca4f87c9eb1b9
+

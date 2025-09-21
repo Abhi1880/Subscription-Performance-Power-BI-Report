@@ -1,0 +1,33 @@
+table spiffs
+	lineageTag: 2332ac39-c000-450b-aa3d-fe5057f83ae3
+
+	column product_id
+		dataType: string
+		lineageTag: 9210ea45-95c8-4d06-a451-e14b1bd29555
+		summarizeBy: none
+		sourceColumn: product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column spiff_per_unit_gbp
+		dataType: int64
+		formatString: 0
+		lineageTag: 1e10c812-455f-46e2-b9ff-fc7c02d6b487
+		summarizeBy: none
+		sourceColumn: spiff_per_unit_gbp
+
+		annotation SummarizationSetBy = User
+
+	partition spiffs = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\spiffs.csv"),[Delimiter=",", Columns=3, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"spiff_name", type text}, {"product_id", type text}, {"spiff_per_unit_gbp", Int64.Type}}),
+				    #"Columns removed by Measure Killer"= Table.SelectColumns(#"Changed Type",{"product_id","spiff_per_unit_gbp"})
+				in
+				    #"Columns removed by Measure Killer"
+
+	annotation PBI_ResultType = Table
+

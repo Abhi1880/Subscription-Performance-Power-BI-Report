@@ -1,0 +1,32 @@
+table dim_regions_uk
+	lineageTag: 963a19ab-bbc6-4524-b771-e3ef5d5fac90
+
+	column uk_region_id
+		dataType: string
+		lineageTag: e10d7bbd-917b-47f2-9e11-53a16c30ee35
+		summarizeBy: none
+		sourceColumn: uk_region_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column uk_region_name
+		dataType: string
+		lineageTag: 24b9a9aa-e7ab-4c3c-b642-d04511715e61
+		summarizeBy: none
+		sourceColumn: uk_region_name
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_regions_uk = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\dim_regions_uk.csv"),[Delimiter=",", Columns=2, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}, {"Column2", type text}}),
+				    #"Promoted Headers" = Table.PromoteHeaders(#"Changed Type", [PromoteAllScalars=true]),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Promoted Headers",{{"uk_region_id", type text}, {"uk_region_name", type text}})
+				in
+				    #"Changed Type1"
+
+	annotation PBI_ResultType = Table
+

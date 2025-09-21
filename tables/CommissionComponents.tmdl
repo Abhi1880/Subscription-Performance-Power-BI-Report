@@ -1,0 +1,35 @@
+table CommissionComponents
+	lineageTag: b55cc1bd-606c-45f2-84ed-4fb66ea15a2b
+
+	column Component
+		lineageTag: eab3e840-02a8-476b-b117-1e4bbafd5627
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Component]
+		sortByColumn: Sort
+
+		annotation SummarizationSetBy = Automatic
+
+	column Sort
+		formatString: 0
+		lineageTag: 2113adee-dc35-40bd-a321-e325f779838b
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Sort]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition CommissionComponents = calculated
+		mode: import
+		source =
+				
+				DATATABLE (
+				  "Component", STRING, "Sort", INTEGER,
+				  {
+				    {"Base",1},{"ARPU Bonus",2},{"Accelerator",3},
+				    {"SPIFF",4},{"Mix Bonus",5},{"Quarter Kicker",6}
+				  }
+				)
+
+	annotation PBI_Id = df34dbfac7694f9e982502a0172c151a
+

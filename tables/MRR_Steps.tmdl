@@ -1,0 +1,34 @@
+table MRR_Steps
+	lineageTag: d58d697b-10fa-4c6d-9776-9175e7d7832f
+
+	column Step
+		lineageTag: 5c54d136-4a4c-4b38-be7d-e21a70b2977d
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Step]
+		sortByColumn: Sort
+
+		annotation SummarizationSetBy = Automatic
+
+	column Sort
+		formatString: 0
+		lineageTag: c5ad7a6f-c850-4300-9905-2d9fc49470d5
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Sort]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition MRR_Steps = calculated
+		mode: import
+		source =
+				
+				DATATABLE(
+				  "Step", STRING, "Sort", INTEGER,
+				  { { "MRR Till Now", 1 }
+				  , { "New MRR (New Subs this Month)", 2 }
+				  , { "Churned MRR (Cancelled Subs this Month)", 3 } }
+				)
+
+	annotation PBI_Id = 64c873641f69431e8948a5130d70d674
+

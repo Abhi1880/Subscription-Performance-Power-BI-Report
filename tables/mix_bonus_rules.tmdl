@@ -1,0 +1,25 @@
+table mix_bonus_rules
+	lineageTag: 8d29ab77-f9e6-4cf2-bf72-84d2d9d35b8e
+
+	column bonus_per_deal_gbp
+		dataType: int64
+		formatString: 0
+		lineageTag: 4d5dbbcb-5232-46ad-95d6-734ea1fa2a56
+		summarizeBy: none
+		sourceColumn: bonus_per_deal_gbp
+
+		annotation SummarizationSetBy = User
+
+	partition mix_bonus_rules = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\mix_bonus_rules.csv"),[Delimiter=",", Columns=3, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"rule_name", type text}, {"min_addons", Int64.Type}, {"bonus_per_deal_gbp", Int64.Type}}),
+				    #"Columns removed by Measure Killer"= Table.SelectColumns(#"Changed Type",{"bonus_per_deal_gbp"})
+				in
+				    #"Columns removed by Measure Killer"
+
+	annotation PBI_ResultType = Table
+

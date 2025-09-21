@@ -1,0 +1,68 @@
+table commission_model_uk
+	lineageTag: ae9aa084-f963-46e2-8a4d-9f3c066b4099
+
+	column attainment_band
+		dataType: string
+		lineageTag: 0111f319-0572-4f1e-888b-a9f13aa11acc
+		summarizeBy: none
+		sourceColumn: attainment_band
+
+		annotation SummarizationSetBy = Automatic
+
+	column base_rate_per_deal_gbp
+		dataType: int64
+		formatString: 0
+		lineageTag: 02339534-a8bf-47c3-8f92-f921c1439273
+		summarizeBy: none
+		sourceColumn: base_rate_per_deal_gbp
+
+		annotation SummarizationSetBy = User
+
+	column arpu_bonus_threshold_gbp
+		dataType: int64
+		formatString: 0
+		lineageTag: 4b0e8d3c-ead0-4b68-8a66-6b55e90da01e
+		summarizeBy: none
+		sourceColumn: arpu_bonus_threshold_gbp
+
+		annotation SummarizationSetBy = User
+
+	column arpu_bonus_per_deal_gbp
+		dataType: int64
+		formatString: 0
+		lineageTag: 2a0f1e89-ca4d-4840-9e6c-679eab95a0ae
+		summarizeBy: none
+		sourceColumn: arpu_bonus_per_deal_gbp
+
+		annotation SummarizationSetBy = User
+
+	column accelerator_over_x_deals
+		dataType: int64
+		formatString: 0
+		lineageTag: 28e69952-93dc-4bde-8362-38bcffb96c8d
+		summarizeBy: none
+		sourceColumn: accelerator_over_x_deals
+
+		annotation SummarizationSetBy = User
+
+	column accelerator_extra_per_deal_gbp
+		dataType: int64
+		formatString: 0
+		lineageTag: e95a0506-b63d-4ffb-be12-ab139d1284c9
+		summarizeBy: none
+		sourceColumn: accelerator_extra_per_deal_gbp
+
+		annotation SummarizationSetBy = User
+
+	partition commission_model_uk = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\commission_model_uk.csv"),[Delimiter=",", Columns=6, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"attainment_band", type text}, {"base_rate_per_deal_gbp", Int64.Type}, {"arpu_bonus_threshold_gbp", Int64.Type}, {"arpu_bonus_per_deal_gbp", Int64.Type}, {"accelerator_over_x_deals", Int64.Type}, {"accelerator_extra_per_deal_gbp", Int64.Type}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

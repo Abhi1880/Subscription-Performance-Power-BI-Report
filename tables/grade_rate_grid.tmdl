@@ -1,0 +1,33 @@
+table grade_rate_grid
+	lineageTag: 6e4c1fdc-024f-4b5e-955d-04c4cbd1c876
+
+	column grade
+		dataType: string
+		lineageTag: f0a33c4b-c0f6-4460-9191-77ecb45e552f
+		summarizeBy: none
+		sourceColumn: grade
+
+		annotation SummarizationSetBy = Automatic
+
+	column rate_multiplier
+		dataType: double
+		lineageTag: 03e07c3e-fd81-4866-9deb-2a8b6e417f84
+		summarizeBy: sum
+		sourceColumn: rate_multiplier
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition grade_rate_grid = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\grade_rate_grid.csv"),[Delimiter=",", Columns=2, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"grade", type text}, {"rate_multiplier", type number}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

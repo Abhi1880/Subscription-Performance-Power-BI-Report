@@ -1,0 +1,24 @@
+table dim_products
+	lineageTag: 3da56386-afa3-4360-8461-f2dcf707e7f8
+
+	column product_id
+		dataType: string
+		lineageTag: 65b175f9-0eaf-49e8-8fc5-4b58af2e7479
+		summarizeBy: none
+		sourceColumn: product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_products = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\HP\Downloads\verisure_uk_dataset\dim_products.csv"),[Delimiter=",", Columns=5, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"product_id", type text}, {"category", type text}, {"product_name", type text}, {"monthly_fee_min_gbp", type number}, {"monthly_fee_max_gbp", type number}}),
+				    #"Columns removed by Measure Killer"= Table.SelectColumns(#"Changed Type",{"product_id"})
+				in
+				    #"Columns removed by Measure Killer"
+
+	annotation PBI_ResultType = Table
+
